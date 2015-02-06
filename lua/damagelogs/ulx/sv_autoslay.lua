@@ -109,7 +109,7 @@ function Damagelog:AddSlays(admin, steamid, slays, reason, target)
 	if target then
 		ulx.fancyLogAdmin(admin, "#A added "..slays.." autoslays to #T with the reason : '#s'", target, reason)
 	else
-		ulx.fancyLogAdmin(admin, "#A added "..slays.." autoslays to #T with the reason : '#s'", steamid, reason)
+		ulx.fancyLogAdmin(admin, "#A added "..slays.." autoslays to #s with the reason : '#s'", steamid, reason)
 	end
 	NetworkSlays(steamid)
 end
@@ -139,7 +139,7 @@ function Damagelog:RemoveSlays(admin, steamid, slays, target)
 	if target then
 		ulx.fancyLogAdmin(admin, "#A removed "..slays_removed.." autoslays from #T.", target)
 	else
-		ulx.fancyLogAdmin(admin, "#A removed "..slays_removed.." autoslays from #T.", steamid)
+		ulx.fancyLogAdmin(admin, "#A removed "..slays_removed.." autoslays from #s.", steamid)
 	end
 	NetworkSlays(steamid)
 end
