@@ -126,7 +126,11 @@ if CLIENT then
 		local list = net.ReadString()
 		local reason = net.ReadString()
 		local _time = net.ReadString()
-		if not IsValid(ply) or not list or not reason or not _time then return end
-		chat.AddText(Color(255, 62, 62), ply:Nick(), color_white, " has been autoslain by ",  Color(98, 176, 255), list.." ", color_white, _time.." ago with the reason: '"..reason.."'.")
+		local slays_left = net.ReadInt(32)
+		if not IsValid(ply) or not list or not reason or not _time and not slays_left then return end
+		local remaining = ""
+		if slays_left == 1 then remaining = " One slay remaining." end
+		if slays_left > 1 then remaining = " "..slays_left.." slays remaining." end
+		chat.AddText(Color(255, 62, 62), ply:Nick(), color_white, " has been autoslain by ",  Color(98, 176, 255), list.." ", color_white, _time.." ago with the reason: '"..reason.."'."..remaining)
 	end)
 end

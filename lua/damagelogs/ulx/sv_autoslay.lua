@@ -26,7 +26,9 @@ hook.Add("PlayerAuthed", "DamagelogNames", function(ply, steamid, uniqueid)
 	elseif query != name then
 		sql.Query("UPDATE damagelog_names SET name = "..sql.SQLStr(name).." WHERE steamid = '"..steamid.."' LIMIT 1;")
 	end
-	ply:SetNWInt("Autoslays_left", sql.Query("SELECT sum(slays) FROM damagelog_autoslay WHERE steamid = '"..steamid.."';") or 0)
+	local slays = sql.QueryValue("SELECT sum(slays) FROM damagelog_autoslay WHERE ply = '"..steamid.."';") or 0
+	if slays == "NULL" then slays = 0 end -- is there a better way?
+	ply:SetNWInt("Autoslays_left", slays)
 end)
 
 function Damagelog:GetName(steamid)
@@ -39,7 +41,7 @@ function Damagelog:GetName(steamid)
 	return query or "<Error>"
 end
 
-function Damagelog.SlayMessage(ply, message)
+function Damagelog:SlayMessage(ply, message)
 	net.Start("DL_SlayMessage")
 	net.WriteString(message)
 	net.Send(ply)
@@ -83,14 +85,12 @@ function Damagelog:FormatTime(t)
 end
 
 local function NetworkSlays(steamid)
-	NetworkSlays(steamid, sql.Query("SELECT sum(slays) FROM damagelog_autoslay WHERE steamid = '"..steamid.."';") or 0)
-end
-
-local function NetworkSlays(steamid, number)
+	local number = sql.QueryValue("SELECT sum(slays) FROM damagelog_autoslay WHERE ply = '"..steamid.."';") or 0
+	if number == "NULL" then number = 0 end -- is there a better way?
 	for k,v in pairs(player.GetAll()) do
 		if v:SteamID() == steamid then
 			v:SetNWInt("Autoslays_left", number)
-			return
+			return number
 		end
 	end
 end
@@ -164,13 +164,14 @@ hook.Add("TTTBeginRound", "Damagelog_AutoSlay", function()
 				else
 					sql.Query("UPDATE damagelog_autoslay SET slays = slays - 1 WHERE ply = '"..v:SteamID().."' AND rowid = '"..rowid.."';")
 				end
-				NetworkSlays(steamid)
+				slays_left = NetworkSlays(v:SteamID())
 				local list = Damagelog:CreateSlayList(admins)
 				net.Start("DL_AutoSlay")
 				net.WriteEntity(v)
 				net.WriteString(list)
 				net.WriteString(reason)
 				net.WriteString(Damagelog:FormatTime(tonumber(os.time()) - tonumber(_time)))
+				net.WriteInt(slays_left, 32)
 				net.Broadcast()
 				if IsValid(v.server_ragdoll) then
 					local ply = player.GetByUniqueID(v.server_ragdoll.uqid)
