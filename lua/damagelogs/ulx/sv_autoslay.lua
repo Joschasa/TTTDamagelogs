@@ -152,33 +152,37 @@ hook.Add("TTTBeginRound", "Damagelog_AutoSlay", function()
 			end)
 			local data = sql.QueryRow("SELECT *,rowid FROM damagelog_autoslay WHERE ply = '"..v:SteamID().."' ORDER BY time ASC LIMIT 1;")
 			if data then
-				v:Kill()
-				local admins = util.JSONToTable(data.admins) or {}
-				local slays = data.slays
-				local reason = data.reason
-				local _time = data.time
-				local rowid = tonumber(data.rowid)
-				slays = slays - 1
-				if slays <= 0 then
-					sql.Query("DELETE FROM damagelog_autoslay WHERE ply = '"..v:SteamID().."' AND rowid = '"..rowid.."';")
+				if v:GetDetective() then
+					Damagelog:SlayMessage(v, "You are detective. Your life will be spared this round.")
 				else
-					sql.Query("UPDATE damagelog_autoslay SET slays = slays - 1 WHERE ply = '"..v:SteamID().."' AND rowid = '"..rowid.."';")
-				end
-				slays_left = NetworkSlays(v:SteamID())
-				local list = Damagelog:CreateSlayList(admins)
-				net.Start("DL_AutoSlay")
-				net.WriteEntity(v)
-				net.WriteString(list)
-				net.WriteString(reason)
-				net.WriteString(Damagelog:FormatTime(tonumber(os.time()) - tonumber(_time)))
-				net.WriteInt(slays_left, 32)
-				net.Broadcast()
-				if IsValid(v.server_ragdoll) then
-					local ply = player.GetByUniqueID(v.server_ragdoll.uqid)
-					ply:SetCleanRound(false)
-					ply:SetNWBool("body_found", true)
-					CORPSE.SetFound(v.server_ragdoll, true)
-					v.server_ragdoll:Remove()
+					v:Kill()
+					local admins = util.JSONToTable(data.admins) or {}
+					local slays = data.slays
+					local reason = data.reason
+					local _time = data.time
+					local rowid = tonumber(data.rowid)
+					slays = slays - 1
+					if slays <= 0 then
+						sql.Query("DELETE FROM damagelog_autoslay WHERE ply = '"..v:SteamID().."' AND rowid = '"..rowid.."';")
+					else
+						sql.Query("UPDATE damagelog_autoslay SET slays = slays - 1 WHERE ply = '"..v:SteamID().."' AND rowid = '"..rowid.."';")
+					end
+					slays_left = NetworkSlays(v:SteamID())
+					local list = Damagelog:CreateSlayList(admins)
+					net.Start("DL_AutoSlay")
+					net.WriteEntity(v)
+					net.WriteString(list)
+					net.WriteString(reason)
+					net.WriteString(Damagelog:FormatTime(tonumber(os.time()) - tonumber(_time)))
+					net.WriteInt(slays_left, 32)
+					net.Broadcast()
+					if IsValid(v.server_ragdoll) then
+						local ply = player.GetByUniqueID(v.server_ragdoll.uqid)
+						ply:SetCleanRound(false)
+						ply:SetNWBool("body_found", true)
+						CORPSE.SetFound(v.server_ragdoll, true)
+						v.server_ragdoll:Remove()
+					end
 				end
 			end
 		end
