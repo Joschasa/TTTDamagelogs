@@ -184,3 +184,22 @@ hook.Add("TTTBeginRound", "Damagelog_AutoSlay", function()
 		end
 	end	
 end)
+
+hook.Add("PlayerSpawn", "Damagelog_Inform" , function(ply)
+	local slays_left = tonumber(ply:GetNWInt("Autoslays_left", 0)) or 0
+	local slay_reason = false
+        
+	if ply:Alive() and slays_left > 0 then
+		local chat_message = ""
+
+		if slays_left > 0 then
+			chat_message = (chat_message .. "You will be slain this round")
+		end
+		if slays_left == 2 then
+			chat_message = (chat_message .. " and next round")
+		elseif slays_left > 2 then
+			chat_message = (chat_message .. " and ".. (slays_left - 1) .." rounds after the current round")
+		end
+		ply:ChatPrint(chat_message..".")
+	end
+end)
