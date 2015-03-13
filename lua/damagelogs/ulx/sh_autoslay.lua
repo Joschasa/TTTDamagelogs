@@ -132,5 +132,70 @@ if CLIENT then
 		if slays_left == 1 then remaining = " One slay remaining." end
 		if slays_left > 1 then remaining = " "..slays_left.." slays remaining." end
 		chat.AddText(Color(255, 62, 62), ply:Nick(), color_white, " has been autoslain by ",  Color(98, 176, 255), list.." ", color_white, _time.." ago with the reason: '"..reason.."'."..remaining)
+
+		if ply == LocalPlayer() then
+			local frame = vgui.Create("DFrame")
+			frame:SetSize(275, 170)
+			frame:SetTitle(LocalPlayer():Nick().." is dead!"..remaining)
+			frame:ShowCloseButton(false)
+			frame:SetBackgroundBlur(true)
+			frame:Center()
+
+			local admin = vgui.Create("DLabel", frame)
+			admin:SetText(list.." issued this slay ".._time.." ago:")
+			-- admin:SetFGColor( Color(0,0,0) )
+			admin:SizeToContents()
+			admin:SetPos(10, 28)
+
+			local reasonlabel = vgui.Create("DLabel", frame)
+			reasonlabel:SetText(reason)
+			-- reasonlabel:SetFGColor( Color(255,0,0) )
+			reasonlabel:SetFGColor( Color(255,132,0) )
+			reasonlabel:SetWidth(255)
+			reasonlabel:SetWrap(true)
+			reasonlabel:SetAutoStretchVertical(true)
+			-- reasonlabel:SizeToContents()
+			reasonlabel:SetPos(10, 44)
+
+			local rulesbutton = vgui.Create("DButton", frame)
+			rulesbutton:SetPos(5, 110)
+			rulesbutton:SetSize(265, 25)	
+			rulesbutton:SetText("Show me the rules.")
+			rulesbutton.DoClick = function()
+				MODERN.OpenMOTD( {} )
+			end
+
+			local rules_icon = vgui.Create("DImageButton", rulesbutton)
+			rules_icon:SetPos(2, 5)
+			rules_icon:SetMaterial("materials/icon16/book.png")
+			rules_icon:SizeToContents()
+
+			local closebutton = vgui.Create("DButton", frame)
+			closebutton:SetPos(5, 140)
+			closebutton:SetSize(265, 25)	
+			closebutton:SetText("Please wait...")
+			closebutton:SetDisabled(true)
+			closebutton.DoClick = function()
+				frame:Close()
+			end
+
+			local unlock = os.time() + 10
+			closebutton.Think = function(self)
+				if unlock > os.time() then
+					closebutton:SetText("Time to read: "..(unlock - os.time()))
+					closebutton:SetDisabled(true)
+				else
+					closebutton:SetText("Ok, i guess you've read it by now.")
+					closebutton:SetDisabled(false)
+				end
+			end
+
+			local close_icon = vgui.Create("DImageButton", closebutton)
+			close_icon:SetPos(2, 5)
+			close_icon:SetMaterial("materials/icon16/accept.png")
+			close_icon:SizeToContents()
+
+			frame:MakePopup()
+		end
 	end)
 end
