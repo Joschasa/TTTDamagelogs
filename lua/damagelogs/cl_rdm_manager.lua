@@ -228,7 +228,7 @@ function Damagelog:ReportWindow(tbl)
 	end
 	
 	local Label = vgui.Create("DLabel", ReportPanel)
-	Label:SetTextColor(color_black)
+	Label:SetFGColor(color_black)
 	Label:SetText("Explain the situation. At least 10 characters are required.")
 	Label:SizeToContents()
 	Label:SetPos(210, 30)
@@ -342,7 +342,7 @@ end)
 net.Receive("DL_Answering_global", function(_len)
 	local nick = net.ReadString()
 	local ply = LocalPlayer()
-	if not ply:IsActive() or ply:CanUseRDMManager() then
+	if not ply:IsActive() then
 		chat.AddText(Color(255,62,62), nick, color_white, " is answering to his reports.")
 	end
 end)

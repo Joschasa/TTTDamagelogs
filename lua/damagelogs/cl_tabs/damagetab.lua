@@ -154,7 +154,7 @@ function Damagelog:DrawDamageTab(x, y)
 	self.PS_Label = vgui.Create("DLabel", self.PlayerSelect)
 	self.PS_Label.Text = "Currently highlighted players:"
 	self.PS_Label:SetFont("DL_Highlight")
-	self.PS_Label:SetTextColor(color_black)
+	self.PS_Label:SetFGColor(color_black)
 	self.PS_Label:SetText(self.PS_Label.Text.." none")
 	self.PS_Label:SetPos(5, 10)
 	self.PS_Label:SizeToContents()
@@ -228,7 +228,7 @@ function Damagelog:DrawDamageTab(x, y)
 	local show_innocents = vgui.Create("DCheckBoxLabel", self.RoleInfos)
 	show_innocents:SetPos(465, 3)
 	show_innocents:SetText("Show innocent players")
-	show_innocents:SetTextColor(color_white)
+	show_innocents:SetFGColor(color_white)
 	show_innocents:SetConVar("ttt_dmglogs_showinnocents")
 	show_innocents:SizeToContents()
 	
@@ -289,8 +289,10 @@ function Damagelog:DrawDamageTab(x, y)
 	
 	local PlayedRounds = sync_ent:GetPlayedRounds()
 	local LastMapExists = sync_ent:GetLastRoundMapExists()
+	local LastChoise = 0
 	if LastMapExists then
 		self.Round:AddChoice("Last round of the previous map", -1)
+		LastChoise = LastChoise + 1
 		if PlayedRounds <= 0 then
 			self.SelectedRound = -1
 			askLogs()
@@ -311,28 +313,12 @@ function Damagelog:DrawDamageTab(x, y)
 			else
 				self.Round:AddChoice("Round "..tostring(i), i)
 			end
+			LastChoise = LastChoise + 1
 		end
-		if PlayedRounds <= 10 then
-			if LastMapExists then
-				if GetConVar("ttt_dmglogs_currentround"):GetBool() then
-					self.Round:ChooseOptionID(PlayedRounds + 1)
+		if not LocalPlayer():CanUseDamagelog() or (GetConVar("ttt_dmglogs_currentround"):GetBool() or not LocalPlayer():IsActive()) then
+			self.Round:ChooseOptionID(LastChoise)
 				else
-					self.Round:ChooseOptionID(PlayedRounds > 0 and PlayedRounds or PlayedRounds+1)
-				end
-			else
-				if GetConVar("ttt_dmglogs_currentround"):GetBool() then
-					self.Round:ChooseOptionID(PlayedRounds)
-				else
-					self.Round:ChooseOptionID(PlayedRounds-1 > 0 and PlayedRounds-1 or PlayedRounds)
-				end
-			end
-		else
-			self.Round:ChooseOptionID(LastMapExists and 12 or 11)
-		end
-		if GetConVar("ttt_dmglogs_currentround"):GetBool() or PlayedRounds <= 1 then
-			self.SelectedRound = PlayedRounds
-		else
-			self.SelectedRound = PlayedRounds-1
+			self.Round:ChooseOptionID(LastChoise-1 > 0 and LastChoise-1 or LastChoise)
 		end
 		askLogs()
 	elseif not LastMapExists then
