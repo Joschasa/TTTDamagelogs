@@ -21,7 +21,7 @@ local function CreateCommand()
 			ULib.tsayError(calling_ply, "Invalid steamid.", true)
 		end
 	end
-	
+
 	function ulx.removeautoslay(calling_ply, target, rounds)
 		Damagelog:RemoveSlays(calling_ply, target:SteamID(), rounds, target)
 	end
@@ -39,7 +39,7 @@ local function CreateCommand()
 			ULib.tsayError(calling_ply, "Invalid steamid.", true)
 		end
 	end
-	
+
 	local autoslay = ulx.command("TTT", "ulx aslay", ulx.autoslay, "!aslay" )
 	autoslay:addParam({ type=ULib.cmds.PlayerArg })
 	autoslay:addParam({ 
@@ -59,7 +59,7 @@ local function CreateCommand()
 	})
 	autoslay:defaultAccess(ULib.ACCESS_ADMIN)
 	autoslay:help("Slays the target for a specified number of rounds.")
-	
+
 	local autoslayid = ulx.command("TTT", "ulx aslayid", ulx.autoslayid, "!aslayid" )
 	autoslayid:addParam({ 
 		type=ULib.cmds.StringArg, 
@@ -82,7 +82,7 @@ local function CreateCommand()
 	})
 	autoslayid:defaultAccess(ULib.ACCESS_ADMIN)
 	autoslayid:help("Slays a steamid for a specified number of rounds.")
-	
+
 	local removeautoslay = ulx.command("TTT", "ulx raslay", ulx.removeautoslay, "!raslay" )
 	removeautoslay:addParam({ type=ULib.cmds.PlayerArg })
 	removeautoslay:addParam({ 
@@ -94,8 +94,8 @@ local function CreateCommand()
 		ULib.cmds.round 
 	})
 	removeautoslay:defaultAccess(ULib.ACCESS_ADMIN)
-	removeautoslay:help("Remove slays form the target.")
-	
+	removeautoslay:help("Remove slays from the target.")
+
 	local removeautoslayid = ulx.command("TTT", "ulx raslayid", ulx.removeautoslayid, "!raslayid" )
 	removeautoslayid:addParam({ 
 		type=ULib.cmds.StringArg, 
@@ -110,7 +110,7 @@ local function CreateCommand()
 		ULib.cmds.round 
 	})
 	removeautoslayid:defaultAccess(ULib.ACCESS_ADMIN)
-	removeautoslayid:help("Remove slays form the steamid.")
+	removeautoslayid:help("Remove slays from the steamid.")
 end
 hook.Add("Initialize", "AutoSlay", CreateCommand)
 
@@ -120,7 +120,7 @@ if CLIENT then
 		chat.AddText(Color(255,128,0), "[Autoslay] ", Color(255,128,64), net.ReadString())
 	end
 	net.Receive("DL_SlayMessage", Damagelog.SlayMessage)
-	
+
 	net.Receive("DL_AutoSlay", function()
 		local ply = net.ReadEntity()
 		local list = net.ReadString()
