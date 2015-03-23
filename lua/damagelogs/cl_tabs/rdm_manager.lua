@@ -206,16 +206,16 @@ local function TakeAction()
 		menuPanel:AddPanel(slaynr_pnl)
 		slaynr:AddOption("The reported player", function()
 			if IsValid(attacker) then
-				RunConsoleCommand("ulx", "aslay", attacker:Nick(), "0")
+				RunConsoleCommand("ulx", "raslay", attacker:Nick(), "999999")
 			else
-				RunConsoleCommand("ulx", "aslayid", report.attacker, "0")
+				RunConsoleCommand("ulx", "raslayid", report.attacker, "999999")
 			end
 		end):SetImage("icon16/user_delete.png")
 		slaynr:AddOption("The victim", function()
 			if IsValid(victim) then
-				RunConsoleCommand("ulx", "aslay", victim:Nick(), "0")
+				RunConsoleCommand("ulx", "raslay", victim:Nick(), "999999")
 			else
-				RunConsoleCommand("ulx", "aslayid", report.victim, "0")
+				RunConsoleCommand("ulx", "raslayid", report.victim, "999999")
 			end
 		end):SetImage("icon16/user.png")
 	end
