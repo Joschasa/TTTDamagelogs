@@ -108,8 +108,8 @@ function Damagelog:DrawSettings(x, y)
 			local line = panel:AddLine(k,v)
 			if not self.weapon_table_default[k] then
 				line.PaintOver = function()
-					line.Columns[1]:SetFGColor(Color(50, 255, 50))
-					line.Columns[2]:SetFGColor(Color(50, 255, 50))
+					line.Columns[1]:SetTextColor(Color(50, 255, 50))
+					line.Columns[2]:SetTextColor(Color(50, 255, 50))
 				end
 			end			
 		end
@@ -132,7 +132,7 @@ net.Receive("DL_SendWeaponTable", function()
 	else
 		Damagelog.weapon_table[net.ReadString()] = net.ReadString()
 	end
-	if ValidPanel(Damagelog.WepListview) then
+	if IsValid(Damagelog.WepListview) then
 		Damagelog.WepListview:Update()
 	end
 end)

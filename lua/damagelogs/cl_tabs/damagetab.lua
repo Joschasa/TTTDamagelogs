@@ -154,7 +154,7 @@ function Damagelog:DrawDamageTab(x, y)
 	self.PS_Label = vgui.Create("DLabel", self.PlayerSelect)
 	self.PS_Label.Text = "Currently highlighted players:"
 	self.PS_Label:SetFont("DL_Highlight")
-	self.PS_Label:SetFGColor(color_black)
+	self.PS_Label:SetTextColor(color_black)
 	self.PS_Label:SetText(self.PS_Label.Text.." none")
 	self.PS_Label:SetPos(5, 10)
 	self.PS_Label:SizeToContents()
@@ -170,13 +170,16 @@ function Damagelog:DrawDamageTab(x, y)
 		end
 		if table.Count(self.Players) > 0 then
 			self:ChooseOptionID(1)
+			self:SetDisabled(false)
+		else
+			self:SetDisabled(true)
 		end
 	end
 	self.PlayersCombo.FirstSelect = true
 	self.PlayersCombo.OnSelect = function(self, index, value, data)
 		self.CurrentlySelected = value
 	end
-	self.PlayersCombo:ChooseOptionID(1)
+	self.PlayersCombo:SetDisabled(true)
 	
 	self.Highlight = vgui.Create("DButton", self.PlayerSelect)
 	self.Highlight:SetPos(500, 30)
@@ -228,7 +231,7 @@ function Damagelog:DrawDamageTab(x, y)
 	local show_innocents = vgui.Create("DCheckBoxLabel", self.RoleInfos)
 	show_innocents:SetPos(465, 3)
 	show_innocents:SetText("Show innocent players")
-	show_innocents:SetFGColor(color_white)
+	show_innocents:SetTextColor(color_white)
 	show_innocents:SetConVar("ttt_dmglogs_showinnocents")
 	show_innocents:SizeToContents()
 	
@@ -325,6 +328,42 @@ function Damagelog:DrawDamageTab(x, y)
 		self.Round:AddChoice("No available logs for the current map")
 		self.Round:ChooseOptionID(1)
 	end
+	local function drawStupid(self, x, y)
+		local selected, data = self:GetSelected()
+		if selected then
+			surface.SetFont("DermaDefault")
+			surface.SetTextColor(color_black)
+			surface.SetTextPos(x, y)
+			surface.DrawText(selected)
+		end
+	end
+	self.Round.PaintOver = function(self)
+		drawStupid(self, 8, 4)
+	end
+	self.PlayersCombo.PaintOver = function(self)
+		drawStupid(self, 8, 3)
+	end
+	self.Round.OpenMenu = function(self, pControlOpener)
+		if pControlOpener then
+			if pControlOpener == self.TextEntry then
+				return
+			end
+		end
+		if #self.Choices == 0 then return end
+		if IsValid(self.Menu) then
+			self.Menu:Remove()
+			self.Menu = nil
+		end
+		self.Menu = DermaMenu()
+		local sorted = {}
+		for k,v in pairs(self.Choices) do table.insert(sorted, { id = k, data = v }) end
+		for k,v in pairs(sorted, "data") do
+			self.Menu:AddOption(v.data, function() self:ChooseOption( v.data, v.id ) end)
+		end
+		local x, y = self:LocalToScreen(0, self:GetTall())
+		self.Menu:SetMinimumWidth(self:GetWide())
+		self.Menu:Open(x, y, false, self)
+	end
 end
 
 function Damagelog:ReceiveLogs(empty, tbl, last)
@@ -397,7 +436,7 @@ net.Receive("DL_RefreshDamagelog", function()
 	if not IsValid(LocalPlayer()) then return end -- sometimes happens while joining
 	if not LocalPlayer().CanUseDamagelog then return end
 	if not LocalPlayer():CanUseDamagelog() then return end
-	if ValidPanel(Damagelog.Damagelog) then
+	if IsValid(Damagelog.Damagelog) then
 		local lines = Damagelog.Damagelog:GetLines()
 		if lines[1] and lines[1]:GetValue(3) == "Nothing here..." then
 			Damagelog.Damagelog:Clear()
