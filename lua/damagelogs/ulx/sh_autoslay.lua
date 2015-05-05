@@ -181,12 +181,12 @@ if CLIENT then
 
 			local unlock = os.time() + 10
 			closebutton.Think = function(self)
-				if unlock > os.time() then
+				if unlock <= os.time() then
+					closebutton:SetText("I am sorry and I will obey the rules now.")
+					closebutton:SetDisabled(false)
+				else
 					closebutton:SetText("Time to read: "..(unlock - os.time()))
 					closebutton:SetDisabled(true)
-				else
-					closebutton:SetText("Ok, i guess you've read it by now.")
-					closebutton:SetDisabled(false)
 				end
 			end
 
