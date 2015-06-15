@@ -181,7 +181,7 @@ if CLIENT then
 
 			local unlock = os.time() + 10
 			closebutton.Think = function(self)
-				if unlock <= os.time() then
+				if (self.NoWaitTime and LocalPlayer():CheckGroup( self.NoWaitTime )) or unlock <= os.time() then
 					closebutton:SetText("I am sorry and I will obey the rules now.")
 					closebutton:SetDisabled(false)
 				else

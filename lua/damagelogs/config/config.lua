@@ -19,6 +19,10 @@ Damagelog:AddUser("operator", 1, false)
 Damagelog:AddUser("user", 1, false)
 Damagelog:AddUser("guest", 1, false)
 
+-- Users with in this or any higher group won't have to wait 10 seconds after a slay to dismiss the message
+
+Damagelog.NoWaitTime = "operator"
+
 -- The F-key
 
 Damagelog.Key = KEY_F8
