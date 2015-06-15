@@ -170,6 +170,13 @@ hook.Add("TTTBeginRound", "Damagelog_AutoSlay", function()
 			local data = sql.QueryRow("SELECT *,rowid FROM damagelog_autoslay WHERE ply = '"..v:SteamID().."' ORDER BY time ASC LIMIT 1;")
 			if data then
 				v:Kill()
+				if Damagelog.Autoslay_ForceRole then
+					GAMEMODE:PlayerSpawnAsSpectator(v)
+					v:SetTeam(TEAM_SPEC)
+					v:Spawn()
+					v:SetRagdollSpec(false)
+				end
+
 				local admins = util.JSONToTable(data.admins) or {}
 				local slays = data.slays
 				local reason = data.reason
