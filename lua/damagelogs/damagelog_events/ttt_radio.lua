@@ -48,7 +48,8 @@ function event:ToString(v)
 	-- copied localization from cl_voice.lua
 	local targetply = true
 	local param = v[5]
-	local lang_param = LANG.GetNameParam(param)
+	local lang_param = nil
+	if(param) then lang_param = LANG.GetNameParam(param) end
 	if lang_param then
 		if lang_param == "quick_corpse_id" then
 			-- special case where nested translation is needed
