@@ -15,6 +15,12 @@ surface.CreateFont("DL_ConclusionText", {
 	size = 18
 })
 
+surface.CreateFont("DL_ResponseDisabled", {
+	font = "DermaLarge",
+	size = 16
+})
+
+
 local function AdjustText(str, font, w)
 	surface.SetFont(font)
 	local size = surface.GetTextSize(str)
@@ -49,6 +55,8 @@ cvars.AddChangeCallback("rdm_manager_show_finished", function(name, old, new)
 end)
 
 local status = {
+	[RDM_MANAGER_WAITING_FOR_ATTACKER] = "Waiting for reported player",
+	[RDM_MANAGER_WAITING_FOR_VICTIM] = "Waiting for victim",
 	[RDM_MANAGER_WAITING] = "Waiting",
 	[RDM_MANAGER_PROGRESS] = "In progress",
 	[RDM_MANAGER_FINISHED] = "Finished",
@@ -62,26 +70,20 @@ local icons = {
 }
 
 local colors = {
+	[RDM_MANAGER_WAITING_FOR_ATTACKER] = Color(100,100, 0),
+	[RDM_MANAGER_WAITING_FOR_VICTIM] = Color(100,100, 0),
 	[RDM_MANAGER_WAITING] = Color(100,100, 0),
 	[RDM_MANAGER_PROGRESS] = Color(0,0,190),
 	[RDM_MANAGER_FINISHED] = Color(0,190, 0),
 	[RDM_MANAGER_CANCELED] = Color(100, 100, 100)
 }
 
-local function GetBySteamID(steamid)
-	for k,v in pairs(player.GetAll()) do
-		if v:SteamID() == steamid then
-			return v
-		end
-	end
-end
-
 local function TakeAction()
 	local report = Damagelog.SelectedReport
 	if not report then return end
 	local current = not report.previous
-	local attacker = GetBySteamID(report.attacker)
-	local victim = GetBySteamID(report.victim)
+	local attacker = player.GetBySteamID(report.attacker)
+	local victim = player.GetBySteamID(report.victim)
 	local menuPanel = DermaMenu()
 	menuPanel:AddOption("Set conclusion", function()
 		if report.status != RDM_MANAGER_FINISHED then
@@ -99,16 +101,36 @@ local function TakeAction()
 			end
 		end)
 	end):SetImage("icon16/comment.png")
-	menuPanel:AddOption("Force the reported player to respond", function()
-		if IsValid(attacker) then
-			net.Start("DL_ForceRespond")
-			net.WriteUInt(report.index, 16)
-			net.WriteUInt(current and 0 or 1, 1)
-			net.SendToServer()
+	if report.status == RDM_MANAGER_WAITING_FOR_ATTACKER then
+		menuPanel:AddOption("Force the reported player to respond", function()
+			if IsValid(attacker) then
+				net.Start("DL_ForceRespond")
+				net.WriteUInt(report.index, 16)
+				net.WriteUInt(current and 0 or 1, 1)
+				net.SendToServer()
+			else
+				Derma_Message("The reported player isn't valid! (disconnected?)", "Error", "OK")
+			end
+		end):SetImage("icon16/clock_red.png")
+	end
+	if report.status == RDM_MANAGER_PROGRESS then
+		if not report.chat_open then
+			menuPanel:AddOption(report.chat_opened and "Reopen chat" or "Open chat", function()
+				net.Start("DL_StartChat")
+				net.WriteUInt(report.index, 32)
+				net.SendToServer()
+				if not report.response then
+					Damagelog.DisableResponse(true)
+				end
+			end):SetImage("icon16/application_view_list.png")
 		else
-			Derma_Message("The reported player isn't valid! (disconnected?)", "Error", "OK")
+			menuPanel:AddOption("Join chat", function()
+				net.Start("DL_JoinChat")
+				net.WriteUInt(report.index, 32)
+				net.SendToServer()
+			end):SetImage("icon16/application_go.png")
 		end
-	end):SetImage("icon16/clock_red.png")
+	end
 	menuPanel:AddOption("View Death Scene", function()
 		local found = false
 		for k,v in pairs(report.logs or {}) do
@@ -265,11 +287,15 @@ function PANEL:GetStatus(report)
 	if (report.status == RDM_MANAGER_FINISHED or report.status == RDM_MANAGER_PROGRESS) and report.admin then
 		str = str.." by "..report.admin
 	end
+	if report.chat_open then
+		str = str.." (in chat)"
+	end
 	return str
 end
 
 function PANEL:UpdateReport(index)
 	local report = self.ReportsTable[index]
+	if not report then return end
 	local tbl = {
 		report.index,
 		report.victim_nick,
@@ -298,7 +324,11 @@ function PANEL:UpdateReport(index)
 				else
 					self.Columns[2]:SetTextColor(Color(0, 190, 0))
 					self.Columns[3]:SetTextColor(Color(190, 0, 0))
-					self.Columns[6]:SetTextColor(colors[self.status] or color_white)
+					if report.chat_open then
+						self.Columns[6]:SetTextColor(Color(100 + math.abs(math.sin(CurTime()) * 155), 0, 0))
+					else
+						self.Columns[6]:SetTextColor(colors[self.status] or color_white)
+					end
 				end
 			end
 			self.Reports[index].OnRightClick = function(self)
@@ -359,11 +389,17 @@ function PANEL:UpdateAllReports()
 			end
 		end
 		if Damagelog.SelectedReport then
-			local conclusion = Damagelog.SelectedReport.conclusion
+			local report = Damagelog.SelectedReport
+			local conclusion = report.conclusion
 			if conclusion then
 				self.Conclusion:SetText(conclusion)
 			else
 				self.Conclusion:SetText("No conclusion for the selected report.")
+			end
+			if not report.response and report.chat_opened then
+				Damagelog.DisableResponse(true)
+			else
+				Damagelog.DisableResponse(false)
 			end
 		end
 		Damagelog:UpdateReportTexts()
@@ -373,6 +409,12 @@ end
 function PANEL:OnRowSelected(index, line)
 	Damagelog.SelectedReport = self.ReportsTable[line.index]
 	Damagelog:UpdateReportTexts()
+	local report = Damagelog.SelectedReport
+	if not report.response and report.chat_opened then
+		Damagelog.DisableResponse(true)
+	else
+		Damagelog.DisableResponse(false)
+	end
 	local conclusion = Damagelog.SelectedReport.conclusion
 	if conclusion then
 		self.Conclusion:SetText(conclusion)
@@ -422,6 +464,9 @@ net.Receive("DL_UpdateReport", function()
 			Damagelog.SelectedReport = updated
 		end
 	end
+	if Damagelog.CurrentReports and Damagelog.CurrentReports:IsValid() then
+		Damagelog:UpdateReportTexts()
+	end
 end)
 
 net.Receive("DL_UpdateReports", function()
@@ -439,6 +484,16 @@ net.Receive("DL_UpdateReports", function()
 		Damagelog.PreviousReports:UpdateAllReports()
 	end		
 end)
+
+local function DrawStatusMenuOption(id, menu)
+	menu:AddOption(status[id], function()
+		net.Start("DL_UpdateStatus")
+		net.WriteUInt(Damagelog.SelectedReport.previous and 1 or 0, 1)
+		net.WriteUInt(Damagelog.SelectedReport.index, 16)
+		net.WriteUInt(id, 4)
+		net.SendToServer()
+	end):SetImage(icons[id])
+end
 
 function Damagelog:DrawRDMManager(x,y)
 	if LocalPlayer():CanUseRDMManager() and Damagelog.RDM_Manager_Enabled then
@@ -490,15 +545,21 @@ function Damagelog:DrawRDMManager(x,y)
 		end
 		SetState.DoClick = function()
 			local menu = DermaMenu()
-			for k,v in ipairs(status) do
-				if k == RDM_MANAGER_CANCELED then continue end
-				menu:AddOption(v, function()
-					net.Start("DL_UpdateStatus")
-					net.WriteUInt(Damagelog.SelectedReport.previous and 1 or 0, 1)
-					net.WriteUInt(Damagelog.SelectedReport.index, 16)
-					net.WriteUInt(k, 4)
-					net.SendToServer()
-				end):SetImage(icons[k])
+			local attacker = player.GetBySteamID(Damagelog.SelectedReport.attacker)
+			if not IsValid(attacker) and (Damagelog.SelectedReport.status == RDM_MANAGER_WAITING_FOR_ATTACKER or Damagelog.SelectedReport.status == RDM_MANAGER_WAITING_FOR_VICTIM) then
+				DrawStatusMenuOption(RDM_MANAGER_PROGRESS, menu)
+			end
+			if Damagelog.SelectedReport.status == RDM_MANAGER_WAITING then
+				DrawStatusMenuOption(RDM_MANAGER_PROGRESS, menu)
+			end
+			if Damagelog.SelectedReport.status == RDM_MANAGER_PROGRESS then
+				if IsValid(attacker) then
+					DrawStatusMenuOption(RDM_MANAGER_WAITING, menu)
+				end
+				DrawStatusMenuOption(RDM_MANAGER_FINISHED, menu)
+			end
+			if Damagelog.SelectedReport.status == RDM_MANAGER_FINISHED then
+				DrawStatusMenuOption(RDM_MANAGER_PROGRESS, menu)
 			end
 			menu:Open()
 		end
@@ -509,16 +570,20 @@ function Damagelog:DrawRDMManager(x,y)
 		VictimInfos:SetHeight(110)
 		VictimInfos.Paint = function(panel, w, h)
 			local bar_height = 27
-			surface.SetDrawColor(30, 200, 30);
-			surface.DrawRect(0, 0, (w/2), bar_height);
-			draw.SimpleText("Victim's report", "DL_RDM_Manager", w/4, bar_height/2, Color(0,0,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER);
-			surface.SetDrawColor(220, 30, 30);
-			surface.DrawRect((w/2)+1, 0, (w/2), bar_height);
-			draw.SimpleText("Reported player's response", "DL_RDM_Manager", (w/2) + 1 + (w/4), bar_height/2, Color(0,0,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER);
-			surface.SetDrawColor(0, 0, 0);
-			surface.DrawOutlinedRect(0, 0, w, h);
-			surface.DrawLine(w/2, 0, w/2, h);
-			surface.DrawLine(0, 27, w, bar_height);
+			surface.SetDrawColor(30, 200, 30)
+			surface.DrawRect(0, 0, (w/2), bar_height)
+			draw.SimpleText("Victim's report", "DL_RDM_Manager", w/4, bar_height/2, Color(0,0,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			surface.SetDrawColor(220, 30, 30)
+			surface.DrawRect((w/2)+1, 0, (w/2), bar_height)
+			draw.SimpleText("Reported player's response", "DL_RDM_Manager", (w/2) + 1 + (w/4), bar_height/2, Color(0,0,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			surface.SetDrawColor(0, 0, 0)
+			surface.DrawOutlinedRect(0, 0, w, h)
+			surface.DrawLine(w/2, 0, w/2, h)
+			surface.DrawLine(0, 27, w, bar_height)
+			if panel.DisableR then
+				surface.SetDrawColor(Color(0, 0, 0, 240))
+				surface.DrawRect((w/2)+1, 0, (w/2), h)
+			end
 		end
 		
 		local VictimMessage = vgui.Create("DTextEntry", VictimInfos);
@@ -532,6 +597,22 @@ function Damagelog:DrawRDMManager(x,y)
 		KillerMessage:SetKeyboardInputEnabled(false);
 		KillerMessage:SetPos(319, 27)
 		KillerMessage:SetSize(319, 82)
+		KillerMessage.PaintOver = function(self, w, h)
+			if self.DisableR then
+				surface.SetDrawColor(Color(0, 0, 0, 240))
+				surface.DrawRect(0, 0, w, h)
+				surface.SetFont("DL_ResponseDisabled")
+				local text = "Chat opened, player's response disabled"
+				local wt, ht = surface.GetTextSize(text)
+				wt = wt
+				surface.SetTextColor(color_white)
+				surface.SetTextPos(w/2 - (wt-14)/2, h/3 - ht/2 + 10)
+				surface.DrawText(text)
+				surface.SetMaterial(Material("icon16/exclamation.png"))
+				surface.SetDrawColor(color_white)
+				surface.DrawTexturedRect(w/2 - wt/2 - 14, h/3 - ht/2 + 10, 16, 16)
+			end
+		end
 		
 		self.CurrentReports:SetOuputs(VictimMessage, KillerMessage)
 		self.PreviousReports:SetOuputs(VictimMessage, KillerMessage)
@@ -633,6 +714,11 @@ function Damagelog:DrawRDMManager(x,y)
 			if selected and selected.logs then
 				Damagelog:SetListViewTable(VictimLogs, selected.logs, false)
 			end
+		end
+		
+		Damagelog.DisableResponse = function(disable)
+			VictimInfos.DisableR = disable
+			KillerMessage.DisableR = disable
 		end
 		
 		VictimLogsForm:AddItem(VictimLogs)
